@@ -1,0 +1,97 @@
+basePath: /
+definitions:
+  main.Calculation:
+    properties:
+      expression:
+        type: string
+      id:
+        type: string
+      result:
+        type: string
+    type: object
+  main.CalculationRequest:
+    properties:
+      expression:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Simple calculator API with Echo and Swagger
+  title: Calculation API
+  version: "1.0"
+paths:
+  /calculations:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.Calculation'
+            type: array
+      summary: Get all calculations
+      tags:
+      - calculations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Expression
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/main.CalculationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Calculation'
+      summary: Create calculation
+      tags:
+      - calculations
+  /calculations/{id}:
+    delete:
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete calculation
+      tags:
+      - calculations
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Expression
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/main.CalculationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Calculation'
+      summary: Update calculation
+      tags:
+      - calculations
+swagger: "2.0"

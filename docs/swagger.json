@@ -1,0 +1,150 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Simple calculator API with Echo and Swagger",
+        "title": "Calculation API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/calculations": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calculations"
+                ],
+                "summary": "Get all calculations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.Calculation"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calculations"
+                ],
+                "summary": "Create calculation",
+                "parameters": [
+                    {
+                        "description": "Expression",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.CalculationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.Calculation"
+                        }
+                    }
+                }
+            }
+        },
+        "/calculations/{id}": {
+            "delete": {
+                "tags": [
+                    "calculations"
+                ],
+                "summary": "Delete calculation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Calculation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calculations"
+                ],
+                "summary": "Update calculation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Calculation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Expression",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.CalculationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.Calculation"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "main.Calculation": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.CalculationRequest": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
