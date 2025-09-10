@@ -2,19 +2,39 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/Knetic/govaluate"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"net/http"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	_ "backend/docs"
+
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
+var db *gorm.DB
+
+func initDB() {
+	dsn := "host=localhost user=postgres password=pw dbname=postgres port=5433 sslmode=disable"
+	var err error
+
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("couldnt connect to db: %v", err)
+	}
+	if err := db.AutoMigrate(&Calculation{}); err != nil {
+		log.Fatalf("couldnt migrate: %v", err)
+	}
+}
+
 // Calculation response structure
 type Calculation struct {
-	ID         string `json:"id"`
+	ID         string `gorm:"primaryKey" json:"id"`
 	Expression string `json:"expression"`
 	Result     string `json:"result"`
 }
@@ -23,8 +43,6 @@ type Calculation struct {
 type CalculationRequest struct {
 	Expression string `json:"expression"`
 }
-
-var calculations = []Calculation{}
 
 func calculateExpression(expression string) (string, error) {
 	expr, err := govaluate.NewEvaluableExpression(expression)
@@ -45,7 +63,11 @@ func calculateExpression(expression string) (string, error) {
 // @Success 200 {array} Calculation
 // @Router /calculations [get]
 func getCalculations(c echo.Context) error {
-	return c.JSON(http.StatusOK, calculations)
+	var calclations []Calculation
+	if err := db.Find(&calclations).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "couldnt find calculations"})
+	}
+	return c.JSON(http.StatusOK, calclations)
 }
 
 // postCalculations godoc
@@ -70,7 +92,9 @@ func postCalculations(c echo.Context) error {
 		Expression: req.Expression,
 		Result:     result,
 	}
-	calculations = append(calculations, calc)
+	if err := db.Create(&calc).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "couldnt add calculation"})
+	}
 	return c.JSON(http.StatusCreated, calc)
 }
 
@@ -87,20 +111,23 @@ func patchCalculations(c echo.Context) error {
 	id := c.Param("id")
 	var req CalculationRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 	result, err := calculateExpression(req.Expression)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid expression"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid expression"})
 	}
-	for i, calc := range calculations {
-		if calc.ID == id {
-			calculations[i].Expression = req.Expression
-			calculations[i].Result = result
-			return c.JSON(http.StatusOK, calculations[i])
-		}
+	var calc Calculation
+	if err := db.Find(&calc, "id = ?", id).Error; err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "couldnt find expression"})
 	}
-	return c.JSON(http.StatusBadRequest, map[string]string{"error": "Calculation not found"})
+	calc.Expression = req.Expression
+	calc.Result = result
+
+	if err := db.Save(&calc).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "couldnt update calculations"})
+	}
+	return c.JSON(http.StatusOK, calc)
 }
 
 // deleteCalculations godoc
@@ -111,13 +138,10 @@ func patchCalculations(c echo.Context) error {
 // @Router /calculations/{id} [delete]
 func deleteCalculations(c echo.Context) error {
 	id := c.Param("id")
-	for i, calc := range calculations {
-		if calc.ID == id {
-			calculations = append(calculations[:i], calculations[i+1:]...)
-			return c.NoContent(http.StatusNoContent)
-		}
+	if err := db.Delete(&Calculation{}, "id = ?", id).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "couldnt delete calculation"})
 	}
-	return c.JSON(http.StatusBadRequest, map[string]string{"error": "Calculation not found"})
+	return c.NoContent(http.StatusNoContent)
 }
 
 // @title Calculation API
@@ -126,6 +150,7 @@ func deleteCalculations(c echo.Context) error {
 // @host localhost:8080
 // @BasePath /
 func main() {
+	initDB()
 	e := echo.New()
 	e.Use(middleware.CORS())
 	e.Use(middleware.Logger())
