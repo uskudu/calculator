@@ -44,3 +44,5 @@ func main() {
 		fmt.Println(err)
 	}
 }
+
+// sudo docker run --name calc-cont -e POSTGRES_PASSWORD=pw -d -p 5433:5432 postgres
